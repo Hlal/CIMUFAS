@@ -1,0 +1,42 @@
+netmodel:
+ arch:
+  resnet18
+ dataset:
+  cifar10
+ data:
+  ./data/
+ load_path:
+  ./checkpoint_resnet18_cifar10/exp0/quanted_b44_cosine_warmup.t7
+ bit_wt:
+  4
+ bit_act:
+  4
+simulation:
+ mode:
+  varia_pn_kernel
+ R_on:
+  True
+ R_SAF:
+  False
+ SA1:
+  0.09
+ SA0:
+  0.99
+ ADC_error:
+  False
+ ADC_delta:
+  10
+ para:
+  32
+storage:
+ rram_bit:
+  1
+ rram_conductance:
+  - 706.25
+  - 2050
+ rram_variation:
+  - 39.878
+  - 59.646
+ 
+
+   

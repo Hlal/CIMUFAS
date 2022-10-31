@@ -11,46 +11,22 @@ from numpy import linalg as LA
 import models as mymodels
 from quantization import *
 import argparse
+from config import Config
 
-# dataset = 'mnist'
-# dataset = 'cifar10'
-# data_path = './data/mnist'
-# data_path = './data'
-arch = 'resnet18'
-# # arch = 'lenets2'
-# arch = 'lenet'
-# arch = 'vgg8'
-# load_model = './checkpoint_lenets2_mnist/exp1/quanted_real_pre0001_ckpt_b44_cosine_warmup.t7'
-# load_model = './checkpoint_lenets_mnist/exp0/quanted_pruned_ckpt_b42_cosine_warmup.t7"'
-# load_model = './checkpoint_lenet_mnist/exp1/quanted_b88_3_cosine_warmup.t7'
-# load_model = './checkpoint_lenet_mnist/exp1/quanted_b44_cosine_warmup.t7'
-# load_model = './checkpoint_lenet_mnist/exp1/one_third_pruned_b44_cosine_warmup.t7'
-# load_model = './checkpoint_lenet_mnist/exp1/nopruned_b44_cosine_warmup.t7'
-# load_model = './checkpoint_vgg8_cifar10/exp1/vgg8_b44_cosine_warmup.t7'
+config_file = "config.yaml.txt"
+config = Config(config_file)
 
+arch = config.arch
+dataset = config.dataset
+data_path = config.data
+load_model = config.load_path
 
-dataset = 'imagenet'
-data_path = '/home/data/ImageNet/'
-
-
-# load_model = './checkpoint_resnet18_cifar10/exp0/quanted_b44_cosine_warmup.t7'
-load_model = './checkpoint_resnet18_imagenet/exp6/quanted_b44_cosine_warmup.t7'
-# dataset = 'cifar10'
-# data_path = './data/'#cifar10
-# arch = 'reshalf18'
-# load_model = './checkpoint_reshalf18_cifar10/exp0/quanted_b44_cosine_warmup.t7'
-
-# parser = argparse.ArgumentParser(description='test')
-# parser.add_argument('--sig', type=float, default=1, help='Random seed.')
-# args = parser.parse_args()
 
 lr = 0.001
 momentum = 0.9
 weight_decay=5e-4
-bit_wt = 4
-bit_act = 4
-# bit_wt = 8
-# bit_act = 8    
+bit_wt = config.bit_wt
+bit_act = config.bit_act
 
 modelname = '{}_{}'.format(arch, dataset)
 model = mymodels.__dict__[modelname]()
@@ -91,36 +67,9 @@ bits_activations = {}
 bits_weights = {}
 bits_bias = {}
 input_bit = bit_act
-#flag = 5
-flag = 0
-#注释掉的是lenet的
-# for name, module in model.named_modules():
-#     flag = flag + 1
-#     if isinstance(module, nn.Conv2d) or isinstance(module, nn.Linear):
-#         if flag == 15:
-#             bits_activations[name] = 1
-#             bits_weights[name] = 1
-#             bits_bias[name] = 1
-#         else:
-#             bits_activations[name] = bit_act
-#             bits_weights[name] = bit_wt
-#             bits_bias[name] = bit_wt
-#     else:
-#         bits_weights[name] = None
-#         bits_activations[name] = None
-#         bits_bias[name] = None
+
 for name, module in model.named_modules():
     if isinstance(module, nn.Conv2d) or isinstance(module, nn.Linear):
-        #if flag > 0:
-            #bits_activations[name] = 4
-            #flag -= 1
-        #else:
-            #bits_activations[name] = bit_act
-        # if flag == 0:
-        #     bits_activations[name] = None
-        #     flag += 1
-        # else:
-        #     bits_activations[name] = bit_act
         bits_activations[name] = bit_act
         bits_weights[name] = bit_wt
         bits_bias[name] = bit_wt
@@ -165,8 +114,9 @@ def accuracy(output, target, topk=(1,)):
             res.append(correct_k.mul_(100.0 / batch_size))
         return res
 
-
-quantizer = QuantAwareTrainConvLinearQuantizer(model, optimizer, bits_activations, bits_weights, bits_bias, quantize_inputs=False)
+#Quantizer is the quantization function we use, which is used to modify the network structure to the structure required for quantization; 
+# we have modified the quantized convolution and fully connected operations to simulate on-chip operations; the difference in quantization functions will not affect the simulation process. accuracy.
+quantizer = QuantAwareTrainConvLinearQuantizer(model, optimizer, bits_activations, bits_weights, bits_bias, quantize_inputs=False, config = config)
 quantizer.prepare_model()
 model.load_state_dict(checkpoint)
 model.eval()
@@ -184,7 +134,6 @@ def runmodel():
         alltime = time.time()
         print(alltime)
         for i, (input, target) in enumerate(val_loader):
-            # print('第{}组数据----------------------------------------------------------------------'.format(i))
             input = input.cuda(non_blocking=True)
             target = target.cuda(non_blocking=True)
             # compute output
@@ -211,8 +160,8 @@ def runmodel():
                         i, len(val_loader), batch_time=batch_time, loss=losses,
                         top1=top1, top5=top5))
             # break
-            if( i == 0):
-                break
+            # if( i == 0):
+                # break
         print(time.time()-alltime)
         print(' * Prec@1 {top1.avg:.3f} Prec@5 {top5.avg:.3f}'
                 .format(top1=top1, top5=top5))
