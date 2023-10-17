@@ -86,6 +86,6 @@ storage:
 
 ##### Thanks for using CIMUFAS. Due to the version update, some codes may be incomplete; due to the long experimental process, there may be omissions in the code. If you find any errors in the code, please let me know.
 
-#####REFERENCE
+##### REFERENCE
 
 Wang Z, Yue J, He C, et al. A User-Friendly Fast and Accurate Simulation Framework for Non-Ideal Factors in Computing-in-Memory Architecture[C]//2023 IEEE International Symposium on Circuits and Systems (ISCAS). IEEE, 2023: 1-5.
